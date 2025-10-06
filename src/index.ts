@@ -2,6 +2,20 @@ import type { Types } from "./constants";
 import { types } from "./constants";
 import type { EventTargetLike, EventForType, EventTypes } from "./types";
 
+// safely infer the event type from the target's `on${E}` property
+function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
+  target: T,
+  type: E,
+  opts?: AddEventListenerOptions,
+): AsyncIterableIterator<EventForType<T, E>>;
+
+// unsafely allow asserting the event type
+function onImpl<E extends Event>(
+  target: EventTargetLike,
+  type: string,
+  opts?: AddEventListenerOptions,
+): AsyncIterableIterator<E>;
+
 function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
   target: T,
   type: E,
@@ -51,13 +65,25 @@ function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
   };
 }
 
-const factory =
-  <E extends string>(type: E) =>
-  <T extends EventTargetLike>(
+const factory = <E extends string>(type: E) => {
+  // safely infer the event type from the target's `on${E}` property
+  function specificOn<T extends EventTargetLike>(
     target: T,
     opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<EventForType<T, E>> =>
-    onImpl(target, type as never, opts) as never;
+  ): AsyncIterableIterator<EventForType<T, E>>;
+  // unsafely allow asserting the event type
+  function specificOn<E extends Event>(
+    target: EventTargetLike,
+    opts?: AddEventListenerOptions,
+  ): AsyncIterableIterator<E>;
+  function specificOn<T extends EventTargetLike>(
+    target: T,
+    opts?: AddEventListenerOptions,
+  ): AsyncIterableIterator<EventForType<T, E>> {
+    return onImpl(target, type, opts);
+  }
+  return specificOn;
+};
 
 type EventFactories = {
   [K in Types]: ReturnType<typeof factory<K>>;
