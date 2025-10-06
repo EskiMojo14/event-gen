@@ -67,7 +67,7 @@ function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
 
 const factory = <E extends string>(type: E) => {
   // safely infer the event type from the target's `on${E}` property
-  function specificOn<T extends EventTargetLike>(
+  function specificOn<T extends EventTargetLike & Record<`on${E}`, unknown>>(
     target: T,
     opts?: AddEventListenerOptions,
   ): AsyncIterableIterator<EventForType<T, E>>;
