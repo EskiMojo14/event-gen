@@ -2,38 +2,24 @@ import type { Types } from "./constants";
 import { types } from "./constants";
 import type { EventTargetLike, EventForType, EventTypes } from "./types";
 
-interface OnOptions extends AddEventListenerOptions {
-  /**
-   * Whether to throw an error or complete when the signal (if provided) is aborted.
-   *
-   * @default true
-   */
-  throwOnAbort?: boolean;
-}
-
 function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
   target: T,
   type: E,
-  { signal: parentSignal, throwOnAbort = true, ...opts }: OnOptions = {},
+  { signal: parentSignal, ...opts }: AddEventListenerOptions = {},
 ): AsyncIterableIterator<EventForType<T, E>> {
   let current = Promise.withResolvers<IteratorResult<EventForType<T, E>>>();
 
   const returnAc = new AbortController();
 
-  function onAbort() {
-    if (throwOnAbort) {
-      current.reject(
-        new Error("Iterator aborted", { cause: parentSignal?.reason }),
-      );
-    } else {
-      current.resolve({ done: true, value: undefined });
-    }
+  function done() {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    current.resolve({ done: true, value: parentSignal?.reason });
   }
 
-  parentSignal?.addEventListener("abort", onAbort);
+  parentSignal?.addEventListener("abort", done);
 
   if (parentSignal?.aborted) {
-    onAbort();
+    done();
   } else {
     target.addEventListener(
       type,
@@ -59,7 +45,7 @@ function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
     },
     return() {
       returnAc.abort();
-      current.resolve({ done: true, value: undefined });
+      done();
       return current.promise;
     },
   };
@@ -69,7 +55,7 @@ const factory =
   <E extends string>(type: E) =>
   <T extends EventTargetLike>(
     target: T,
-    opts?: OnOptions,
+    opts?: AddEventListenerOptions,
   ): AsyncIterableIterator<EventForType<T, E>> =>
     onImpl(target, type as never, opts) as never;
 
