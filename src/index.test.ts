@@ -12,6 +12,8 @@ describe("on", () => {
   }
 
   it("creates an iterable of events", async () => {
+    // could be Array.fromAsync(on.click(document).take(3)) one day
+    // or with observables, document.on("click").take(3).toArray()
     async function listen() {
       const clickEvents: Array<PointerEvent> = [];
       for await (const event of on.click(document)) {
