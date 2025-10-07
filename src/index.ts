@@ -110,13 +110,11 @@ function onImpl(
       return this;
     },
     next() {
-      if (isAborted) {
-        return Promise.resolve({ done: true, value: abortReason });
-      }
+      if (isAborted) return Promise.resolve({ done: true, value: abortReason });
+
       const nextEvent = eventQueue.shift();
-      if (nextEvent) {
-        return Promise.resolve({ done: false, value: nextEvent });
-      }
+      if (nextEvent) return Promise.resolve({ done: false, value: nextEvent });
+
       return (current ??= Promise.withResolvers()).promise;
     },
     return(reason?: unknown) {
