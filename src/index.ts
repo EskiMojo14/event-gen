@@ -117,7 +117,7 @@ function onImpl(
       if (nextEvent) {
         return Promise.resolve({ done: false, value: nextEvent });
       }
-      return (current = Promise.withResolvers()).promise;
+      return (current ??= Promise.withResolvers()).promise;
     },
     return(reason?: unknown) {
       returnAc.abort();
