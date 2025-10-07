@@ -3,7 +3,7 @@ import type {
   EventTargetLike,
   EventForType,
   EventTypes,
-  Onable,
+  InferrableTarget,
 } from "./types";
 
 /**
@@ -39,7 +39,7 @@ function onImpl<
  * _A type parameter can be provided to assert the event type._
  *
  * @example
- * for await (const event of on<PointerEvent>(target, "click")) {
+ * for await (const event of on<PointerEvent>(customTarget, "click")) {
  *   // do something with the click event
  * }
  *
@@ -104,7 +104,7 @@ function onImpl(
   };
 }
 
-const makeOn = <TEventType extends string>(type: TEventType) => {
+export interface OnEvent<TEventType extends string> {
   /**
    * Create an async iterable of events from an EventTarget.
    *
@@ -121,7 +121,7 @@ const makeOn = <TEventType extends string>(type: TEventType) => {
    * @returns Async iterable of events
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function onEvent<TTarget extends EventTargetLike & Onable<TEventType, any>>(
+  <TTarget extends EventTargetLike & InferrableTarget<TEventType, any>>(
     target: TTarget,
     opts?: AddEventListenerOptions,
   ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
@@ -134,7 +134,7 @@ const makeOn = <TEventType extends string>(type: TEventType) => {
    * _A type parameter can be provided to assert the event type._
    *
    * @example
-   * for await (const event of on.click<PointerEvent>(target)) {
+   * for await (const event of on.click<PointerEvent>(customTarget)) {
    *   // do something with the click event
    * }
    *
@@ -143,6 +143,23 @@ const makeOn = <TEventType extends string>(type: TEventType) => {
    *
    * @returns Async iterable of events
    */
+  <TEvent extends Event>(
+    target: EventTargetLike,
+    opts?: AddEventListenerOptions,
+  ): AsyncIterableIterator<TEvent>;
+}
+
+const makeOn = <TEventType extends string>(
+  type: TEventType,
+): OnEvent<TEventType> => {
+  function onEvent<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    TTarget extends EventTargetLike & InferrableTarget<TEventType, any>,
+  >(
+    target: TTarget,
+    opts?: AddEventListenerOptions,
+  ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
+
   function onEvent<TEvent extends Event>(
     target: EventTargetLike,
     opts?: AddEventListenerOptions,
@@ -158,7 +175,7 @@ const makeOn = <TEventType extends string>(type: TEventType) => {
 };
 
 type EventFactories = {
-  [K in (typeof types)[number]]: ReturnType<typeof makeOn<K>>;
+  [K in (typeof types)[number]]: OnEvent<K>;
 };
 
 export const on = Object.assign(

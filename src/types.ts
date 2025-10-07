@@ -6,10 +6,10 @@ export interface EventTargetLike {
   ): void;
 }
 
-export type Onable<TEventType extends string, TEvent extends Event> = Record<
-  `on${TEventType}`,
-  ((event: TEvent) => void) | null
->;
+export type InferrableTarget<
+  TEventType extends string,
+  TEvent extends Event,
+> = Record<`on${TEventType}`, ((event: TEvent) => void) | null>;
 
 export type EventTypes<TTarget extends EventTargetLike> = {
   [Key in keyof TTarget]: Key extends `on${infer TEventType}`
@@ -20,4 +20,4 @@ export type EventTypes<TTarget extends EventTargetLike> = {
 export type EventForType<
   TTarget extends EventTargetLike,
   TEventType extends string,
-> = TTarget extends Onable<TEventType, infer TEvent> ? TEvent : Event;
+> = TTarget extends InferrableTarget<TEventType, infer TEvent> ? TEvent : Event;
