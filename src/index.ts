@@ -1,4 +1,3 @@
-import type { Types } from "./constants";
 import { types } from "./constants";
 import type { EventTargetLike, EventForType, EventTypes } from "./types";
 
@@ -16,12 +15,12 @@ function onImpl<E extends Event>(
   opts?: AddEventListenerOptions,
 ): AsyncIterableIterator<E>;
 
-function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
-  target: T,
-  type: E,
+function onImpl(
+  target: EventTargetLike,
+  type: string,
   { signal: parentSignal, ...opts }: AddEventListenerOptions = {},
-): AsyncIterableIterator<EventForType<T, E>> {
-  let current = Promise.withResolvers<IteratorResult<EventForType<T, E>>>();
+): AsyncIterableIterator<Event> {
+  let current = Promise.withResolvers<IteratorResult<Event>>();
 
   const returnAc = new AbortController();
 
@@ -37,8 +36,8 @@ function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
   } else {
     target.addEventListener(
       type,
-      (ev) => {
-        current.resolve({ done: false, value: ev as EventForType<T, E> });
+      (value) => {
+        current.resolve({ done: false, value });
         current = Promise.withResolvers();
       },
       {
@@ -65,33 +64,35 @@ function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
   };
 }
 
-const factory = <E extends string>(type: E) => {
+const makeOn = <E extends string>(type: E) => {
   // safely infer the event type from the target's `on${E}` property
-  function specificOn<T extends EventTargetLike & Record<`on${E}`, unknown>>(
+  function onEvent<T extends EventTargetLike & Record<`on${E}`, unknown>>(
     target: T,
     opts?: AddEventListenerOptions,
   ): AsyncIterableIterator<EventForType<T, E>>;
+
   // unsafely allow asserting the event type
-  function specificOn<E extends Event>(
+  function onEvent<E extends Event>(
     target: EventTargetLike,
     opts?: AddEventListenerOptions,
   ): AsyncIterableIterator<E>;
-  function specificOn<T extends EventTargetLike>(
-    target: T,
+
+  function onEvent(
+    target: EventTargetLike,
     opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<EventForType<T, E>> {
+  ): AsyncIterableIterator<Event> {
     return onImpl(target, type, opts);
   }
-  return specificOn;
+  return onEvent;
 };
 
 type EventFactories = {
-  [K in Types]: ReturnType<typeof factory<K>>;
+  [K in (typeof types)[number]]: ReturnType<typeof makeOn<K>>;
 };
 
 export const on = Object.assign(
   onImpl,
   Object.fromEntries(
-    types.map((type) => [type, factory(type)]),
+    types.map((type) => [type, makeOn(type)]),
   ) as EventFactories,
 );
