@@ -1,9 +1,9 @@
-import { types } from "./constants";
 import type {
   EventTargetLike,
   EventForType,
   EventTypes,
   InferrableTarget,
+  Compute,
 } from "./types";
 
 /**
@@ -181,38 +181,23 @@ export interface OnEvent<TEventType extends string> {
   ): AsyncIterableIterator<TEvent>;
 }
 
-const makeOn = <TEventType extends string>(
-  type: TEventType,
-): OnEvent<TEventType> => {
-  function onEvent<
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    TTarget extends EventTargetLike & InferrableTarget<TEventType, any>,
-  >(
-    target: TTarget,
-    opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
+export interface KnownEvents extends WindowEventMap, DocumentEventMap {}
 
-  function onEvent<TEvent extends Event>(
-    target: EventTargetLike,
-    opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<TEvent>;
-
-  function onEvent(
-    target: EventTargetLike,
-    opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<Event> {
-    return onImpl(target, type, opts);
+type EventMethods = Compute<
+  {
+    [K in string]: OnEvent<K>;
+  } & {
+    [K in keyof KnownEvents]: OnEvent<K>;
   }
-  return onEvent;
-};
+>;
 
-type EventFactories = {
-  [K in (typeof types)[number]]: OnEvent<K>;
-};
-
-export const on = Object.assign(
-  onImpl,
-  Object.fromEntries(
-    types.map((type) => [type, makeOn(type)]),
-  ) as EventFactories,
-);
+export const on = new Proxy(onImpl as typeof onImpl & EventMethods, {
+  get: (on, key) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    if (typeof key !== "string") return Reflect.get(on, key);
+    return (on[key] ??= (
+      target: EventTargetLike,
+      opts?: AddEventListenerOptions,
+    ) => onImpl(target, key, opts));
+  },
+});

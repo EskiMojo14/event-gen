@@ -20,4 +20,11 @@ export type EventTypes<TTarget extends EventTargetLike> = {
 export type EventForType<
   TTarget extends EventTargetLike,
   TEventType extends string,
-> = TTarget extends InferrableTarget<TEventType, infer TEvent> ? TEvent : Event;
+> = string extends TEventType
+  ? Event
+  : TTarget extends InferrableTarget<TEventType, infer TEvent>
+    ? TEvent
+    : Event;
+
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+export type Compute<T> = { [K in keyof T]: T[K] } & unknown;

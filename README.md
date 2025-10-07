@@ -9,7 +9,7 @@ for await (const event of on(document, "click")) {
   // do something with the click event
 }
 
-// for convenience, common events are also available as methods
+// also available as methods (using a Proxy)
 for await (const event of on.click(document)) {
   // do something with the click event
 }
@@ -41,5 +41,34 @@ If the event type cannot be inferred, it defaults to `Event`. You can assert the
 ```ts
 for await (const event of on.click<PointerEvent>(customTarget)) {
   // event is asserted as PointerEvent
+}
+```
+
+### Methods
+
+A Proxy is used to allow providing the type via calling a method instead of passing it as a parameter. (e.g. `on.click(document)` instead of `on(document, "click")`). This allows any type in runtime, but in Typescript the keys need to be known at compile time for inference to work.
+
+```ts
+for await (const event of on.custom(customTarget)) {
+  // event is defaulted as Event
+}
+
+// can be asserted
+for await (const event of on.custom<CustomEvent>(customTarget)) {
+  // event is asserted as CustomEvent
+}
+```
+
+By default the known types are limited to the ones from `window` and `document`. You can expand this by adding to the `KnownEvents` interface.
+
+```ts
+declare module "event-gen" {
+  export interface KnownEvents {
+    custom: true; // value can be anything, only the key matters
+  }
+}
+
+for await (const event of on.custom(customTarget)) {
+  // now knows to look at customTarget.oncustom to infer the event type
 }
 ```
