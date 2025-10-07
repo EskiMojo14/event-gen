@@ -33,6 +33,14 @@ export default tseslint.config(
   {
     rules: {
       "@typescript-eslint/array-type": ["error", { default: "generic" }],
+      "@typescript-eslint/naming-convention": [
+        "error",
+        {
+          selector: "typeParameter",
+          format: ["StrictPascalCase"],
+          prefix: ["T"],
+        },
+      ],
       "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/only-throw-error": "off",

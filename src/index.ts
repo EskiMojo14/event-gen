@@ -1,19 +1,27 @@
 import { types } from "./constants";
-import type { EventTargetLike, EventForType, EventTypes } from "./types";
+import type {
+  EventTargetLike,
+  EventForType,
+  EventTypes,
+  Onable,
+} from "./types";
 
 // safely infer the event type from the target's `on${E}` property
-function onImpl<T extends EventTargetLike, E extends EventTypes<T>>(
-  target: T,
-  type: E,
+function onImpl<
+  TTarget extends EventTargetLike,
+  TEventType extends EventTypes<TTarget>,
+>(
+  target: TTarget,
+  type: TEventType,
   opts?: AddEventListenerOptions,
-): AsyncIterableIterator<EventForType<T, E>>;
+): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 
 // unsafely allow asserting the event type
-function onImpl<E extends Event>(
+function onImpl<TEvent extends Event>(
   target: EventTargetLike,
   type: string,
   opts?: AddEventListenerOptions,
-): AsyncIterableIterator<E>;
+): AsyncIterableIterator<TEvent>;
 
 function onImpl(
   target: EventTargetLike,
@@ -64,18 +72,19 @@ function onImpl(
   };
 }
 
-const makeOn = <E extends string>(type: E) => {
+const makeOn = <TEventType extends string>(type: TEventType) => {
   // safely infer the event type from the target's `on${E}` property
-  function onEvent<T extends EventTargetLike & Record<`on${E}`, unknown>>(
-    target: T,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function onEvent<TTarget extends EventTargetLike & Onable<TEventType, any>>(
+    target: TTarget,
     opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<EventForType<T, E>>;
+  ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 
   // unsafely allow asserting the event type
-  function onEvent<E extends Event>(
+  function onEvent<TEvent extends Event>(
     target: EventTargetLike,
     opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<E>;
+  ): AsyncIterableIterator<TEvent>;
 
   function onEvent(
     target: EventTargetLike,
