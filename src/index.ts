@@ -136,7 +136,29 @@ function onImpl(
   };
 }
 
-export interface OnEvent<TEventType extends string> {
+/**
+ * Create an async iterable of events from an EventTarget.
+ *
+ * _Event type could not be inferred from the target's `on${TEventType}` property, so defaults to `Event`._
+ *
+ * _A type parameter can be provided to assert the event type._
+ *
+ * @example
+ * for await (const event of on.click<PointerEvent>(customTarget)) {
+ *   // do something with the click event
+ * }
+ *
+ * @param target Event target
+ * @param opts Options for the event listener
+ *
+ * @returns Async iterable of events
+ */
+export type OnEvent = <TEvent extends Event>(
+  target: EventTargetLike,
+  opts?: AddEventListenerOptions,
+) => AsyncIterableIterator<TEvent>;
+
+export interface OnKnownEvent<TEventType extends string> extends OnEvent {
   /**
    * Create an async iterable of events from an EventTarget.
    *
@@ -157,44 +179,22 @@ export interface OnEvent<TEventType extends string> {
     target: TTarget,
     opts?: AddEventListenerOptions,
   ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
-
-  /**
-   * Create an async iterable of events from an EventTarget.
-   *
-   * _Event type could not be inferred from the target's `on${TEventType}` property, so defaults to `Event`._
-   *
-   * _A type parameter can be provided to assert the event type._
-   *
-   * @example
-   * for await (const event of on.click<PointerEvent>(customTarget)) {
-   *   // do something with the click event
-   * }
-   *
-   * @param target Event target
-   * @param opts Options for the event listener
-   *
-   * @returns Async iterable of events
-   */
-  <TEvent extends Event>(
-    target: EventTargetLike,
-    opts?: AddEventListenerOptions,
-  ): AsyncIterableIterator<TEvent>;
 }
 
 export interface KnownEvents extends WindowEventMap, DocumentEventMap {}
 
 type EventMethods = Compute<
-  {
-    [K in string]: OnEvent<K>;
-  } & {
-    [K in keyof KnownEvents]: OnEvent<K>;
+  Record<string, OnEvent> & {
+    [K in keyof KnownEvents]: OnKnownEvent<K>;
   }
 >;
 
 export const on = new Proxy(onImpl as typeof onImpl & EventMethods, {
   get: (on, key) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    if (typeof key !== "string") return Reflect.get(on, key);
+    if (typeof key !== "string" || Reflect.has(on, key)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return Reflect.get(on, key);
+    }
     return (on[key] ??= (
       target: EventTargetLike,
       opts?: AddEventListenerOptions,

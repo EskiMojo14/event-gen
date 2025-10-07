@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, it, expectTypeOf } from "vitest";
-import type { OnEvent } from ".";
+import type { OnEvent, OnKnownEvent } from ".";
 import { on } from ".";
 
 declare module "." {
@@ -45,7 +45,7 @@ describe("on", () => {
     >();
   });
   it("has known types as methods, and unknown types as possible methods", () => {
-    expectTypeOf(on.unknown).toEqualTypeOf<OnEvent<string> | undefined>();
-    expectTypeOf(on.known).toEqualTypeOf<OnEvent<"known">>();
+    expectTypeOf(on.unknown).toEqualTypeOf<OnEvent | undefined>();
+    expectTypeOf(on.known).toEqualTypeOf<OnKnownEvent<"known">>();
   });
 });
