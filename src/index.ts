@@ -61,6 +61,7 @@ function onImpl(
   { signal: parentSignal, ...opts }: AddEventListenerOptions = {},
 ): AsyncIterableIterator<Event> {
   const eventQueue: Array<Event> = [];
+  let queueHead = 0;
   let current: PromiseWithResolvers<IteratorResult<Event>> | undefined;
   let isAborted = false;
   let abortReason: unknown;
@@ -77,6 +78,7 @@ function onImpl(
     }
 
     eventQueue.length = 0;
+    queueHead = 0;
   }
 
   parentSignal?.addEventListener("abort", () => {
@@ -112,8 +114,17 @@ function onImpl(
     next() {
       if (isAborted) return Promise.resolve({ done: true, value: abortReason });
 
-      const nextEvent = eventQueue.shift();
-      if (nextEvent) return Promise.resolve({ done: false, value: nextEvent });
+      if (queueHead < eventQueue.length) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const event = eventQueue[queueHead++]!;
+
+        if (queueHead > 100) {
+          eventQueue.splice(0, queueHead);
+          queueHead = 0;
+        }
+
+        return Promise.resolve({ done: false, value: event });
+      }
 
       return (current ??= Promise.withResolvers()).promise;
     },
