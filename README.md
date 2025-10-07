@@ -9,7 +9,7 @@ for await (const event of on(document, "click")) {
   // do something with the click event
 }
 
-// for convenience
+// for convenience, common events are also available as methods
 for await (const event of on.click(document)) {
   // do something with the click event
 }
