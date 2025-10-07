@@ -89,9 +89,6 @@ function onImpl(
     target.addEventListener(
       type,
       (value) => {
-        if (isAborted) {
-          return;
-        }
         if (current) {
           current.resolve({ done: false, value });
           current = undefined;
