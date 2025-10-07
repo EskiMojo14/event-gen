@@ -60,25 +60,44 @@ function onImpl(
   type: string,
   { signal: parentSignal, ...opts }: AddEventListenerOptions = {},
 ): AsyncIterableIterator<Event> {
-  let current = Promise.withResolvers<IteratorResult<Event>>();
+  const eventQueue: Array<Event> = [];
+  let current: PromiseWithResolvers<IteratorResult<Event>> | undefined;
+  let isAborted = false;
+  let abortReason: unknown;
 
   const returnAc = new AbortController();
 
-  function done() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    current.resolve({ done: true, value: parentSignal?.reason });
+  function done(reason?: unknown) {
+    isAborted = true;
+    abortReason = reason;
+
+    if (current) {
+      current.resolve({ done: true, value: reason });
+      current = undefined;
+    }
+
+    eventQueue.length = 0;
   }
 
-  parentSignal?.addEventListener("abort", done);
+  parentSignal?.addEventListener("abort", () => {
+    done(parentSignal.reason);
+  });
 
   if (parentSignal?.aborted) {
-    done();
+    done(parentSignal.reason);
   } else {
     target.addEventListener(
       type,
       (value) => {
-        current.resolve({ done: false, value });
-        current = Promise.withResolvers();
+        if (isAborted) {
+          return;
+        }
+        if (current) {
+          current.resolve({ done: false, value });
+          current = undefined;
+        } else {
+          eventQueue.push(value);
+        }
       },
       {
         ...opts,
@@ -94,12 +113,19 @@ function onImpl(
       return this;
     },
     next() {
-      return current.promise;
+      if (isAborted) {
+        return Promise.resolve({ done: true, value: abortReason });
+      }
+      const nextEvent = eventQueue.shift();
+      if (nextEvent) {
+        return Promise.resolve({ done: false, value: nextEvent });
+      }
+      return (current = Promise.withResolvers()).promise;
     },
-    return() {
+    return(reason?: unknown) {
       returnAc.abort();
-      done();
-      return current.promise;
+      done(reason);
+      return Promise.resolve({ done: true, value: reason });
     },
   };
 }
