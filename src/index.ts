@@ -6,7 +6,22 @@ import type {
   Onable,
 } from "./types";
 
-// safely infer the event type from the target's `on${E}` property
+/**
+ * Create an async iterable of events from an EventTarget.
+ *
+ * _Event type is inferred from the target's `on${TEventType}` property (e.g. `onclick`)._
+ *
+ * @example
+ * for await (const event of on(document, "click")) {
+ *   // do something with the click event
+ * }
+ *
+ * @param target Event target
+ * @param type Type of event to listen for
+ * @param opts Options for the event listener
+ *
+ * @returns Async iterable of events
+ */
 function onImpl<
   TTarget extends EventTargetLike,
   TEventType extends EventTypes<TTarget>,
@@ -16,7 +31,24 @@ function onImpl<
   opts?: AddEventListenerOptions,
 ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 
-// unsafely allow asserting the event type
+/**
+ * Create an async iterable of events from an EventTarget.
+ *
+ * _Event type could not be inferred from the target's `on${TEventType}` property, so defaults to `Event`._
+ *
+ * _A type parameter can be provided to assert the event type._
+ *
+ * @example
+ * for await (const event of on<PointerEvent>(target, "click")) {
+ *   // do something with the click event
+ * }
+ *
+ * @param target Event target
+ * @param type Type of event to listen for
+ * @param opts Options for the event listener
+ *
+ * @returns Async iterable of events
+ */
 function onImpl<TEvent extends Event>(
   target: EventTargetLike,
   type: string,
@@ -73,14 +105,44 @@ function onImpl(
 }
 
 const makeOn = <TEventType extends string>(type: TEventType) => {
-  // safely infer the event type from the target's `on${E}` property
+  /**
+   * Create an async iterable of events from an EventTarget.
+   *
+   * _Event type is inferred from the target's `on${TEventType}` property (e.g. `onclick`)._
+   *
+   * @example
+   * for await (const event of on.click(document)) {
+   *   // do something with the click event
+   * }
+   *
+   * @param target Event target
+   * @param opts Options for the event listener
+   *
+   * @returns Async iterable of events
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function onEvent<TTarget extends EventTargetLike & Onable<TEventType, any>>(
     target: TTarget,
     opts?: AddEventListenerOptions,
   ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 
-  // unsafely allow asserting the event type
+  /**
+   * Create an async iterable of events from an EventTarget.
+   *
+   * _Event type could not be inferred from the target's `on${TEventType}` property, so defaults to `Event`._
+   *
+   * _A type parameter can be provided to assert the event type._
+   *
+   * @example
+   * for await (const event of on.click<PointerEvent>(target)) {
+   *   // do something with the click event
+   * }
+   *
+   * @param target Event target
+   * @param opts Options for the event listener
+   *
+   * @returns Async iterable of events
+   */
   function onEvent<TEvent extends Event>(
     target: EventTargetLike,
     opts?: AddEventListenerOptions,

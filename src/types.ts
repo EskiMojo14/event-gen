@@ -6,8 +6,9 @@ export interface EventTargetLike {
   ): void;
 }
 
-export type Onable<TEventType extends string, TEvent extends Event> = Partial<
-  Record<`on${TEventType}`, ((event: TEvent) => void) | null>
+export type Onable<TEventType extends string, TEvent extends Event> = Record<
+  `on${TEventType}`,
+  ((event: TEvent) => void) | null
 >;
 
 export type EventTypes<TTarget extends EventTargetLike> = {
