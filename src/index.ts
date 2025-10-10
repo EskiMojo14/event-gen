@@ -181,23 +181,24 @@ export interface OnKnownEvent<TEventType extends string> extends OnEvent {
   ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 }
 
-export interface KnownEvents extends WindowEventMap, DocumentEventMap {}
+export interface KnownEvents
+  extends Record<keyof WindowEventMap | keyof DocumentEventMap, true> {}
 
 type EventMethods = Compute<
   Record<string, OnEvent> & {
     [K in keyof KnownEvents]: OnKnownEvent<K>;
   }
 >;
-
+const methodCache = new Map<string, OnEvent>();
 export const on = new Proxy(onImpl as typeof onImpl & EventMethods, {
   get: (on, key) => {
     if (typeof key !== "string" || Reflect.has(on, key)) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return Reflect.get(on, key);
     }
-    return (on[key] ??= (
-      target: EventTargetLike,
-      opts?: AddEventListenerOptions,
-    ) => onImpl(target, key, opts));
+    const cache = methodCache.has(key)
+      ? methodCache
+      : methodCache.set(key, (target, opts) => onImpl(target, key, opts));
+    return cache.get(key);
   },
 });

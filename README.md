@@ -64,7 +64,7 @@ By default the known types are limited to the ones from `window` and `document`.
 ```ts
 declare module "event-gen" {
   export interface KnownEvents {
-    custom: true; // value can be anything, only the key matters
+    custom: true;
   }
 }
 
