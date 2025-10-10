@@ -191,14 +191,14 @@ type EventMethods = Compute<
 >;
 const methodCache = new Map<string, OnEvent>();
 export const on = new Proxy(onImpl as typeof onImpl & EventMethods, {
-  get: (on, key) => {
-    if (typeof key !== "string" || Reflect.has(on, key)) {
+  get: (target, prop) => {
+    if (typeof prop !== "string" || Reflect.has(target, prop)) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return Reflect.get(on, key);
+      return Reflect.get(target, prop);
     }
-    const cache = methodCache.has(key)
+    const cache = methodCache.has(prop)
       ? methodCache
-      : methodCache.set(key, (target, opts) => onImpl(target, key, opts));
-    return cache.get(key);
+      : methodCache.set(prop, (target, opts) => onImpl(target, prop, opts));
+    return cache.get(prop);
   },
 });
