@@ -58,7 +58,7 @@ function onImpl<TEvent extends Event>(
 function onImpl(
   target: EventTargetLike,
   type: string,
-  { signal: parentSignal, ...opts }: AddEventListenerOptions = {},
+  { signal, ...opts }: AddEventListenerOptions = {},
 ): AsyncIterableIterator<Event> {
   const eventQueue: Array<Event> = [];
   let queueHead = 0;
@@ -72,21 +72,18 @@ function onImpl(
     isAborted = true;
     abortReason = reason;
 
-    if (current) {
-      current.resolve({ done: true, value: reason });
-      current = undefined;
-    }
+    current?.resolve({ done: true, value: reason });
+    current = undefined;
 
-    eventQueue.length = 0;
-    queueHead = 0;
+    queueHead = eventQueue.length = 0;
   }
 
-  parentSignal?.addEventListener("abort", () => {
-    done(parentSignal.reason);
+  signal?.addEventListener("abort", () => {
+    done(signal.reason);
   });
 
-  if (parentSignal?.aborted) {
-    done(parentSignal.reason);
+  if (signal?.aborted) {
+    done(signal.reason);
   } else {
     target.addEventListener(
       type,
@@ -100,8 +97,8 @@ function onImpl(
       },
       {
         ...opts,
-        signal: parentSignal
-          ? AbortSignal.any([returnAc.signal, parentSignal])
+        signal: signal
+          ? AbortSignal.any([returnAc.signal, signal])
           : returnAc.signal,
       },
     );
@@ -196,9 +193,8 @@ export const on = new Proxy(onImpl as typeof onImpl & EventMethods, {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return Reflect.get(target, prop);
     }
-    const cache = methodCache.has(prop)
-      ? methodCache
-      : methodCache.set(prop, (target, opts) => onImpl(target, prop, opts));
-    return cache.get(prop);
+    if (!methodCache.has(prop))
+      methodCache.set(prop, (target, opts) => onImpl(target, prop, opts));
+    return methodCache.get(prop);
   },
 });
