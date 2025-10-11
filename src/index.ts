@@ -6,6 +6,22 @@ import type {
   Compute,
 } from "./types";
 
+interface EventIteratorOptions extends AddEventListenerOptions {
+  /**
+   * How many events to queue before discarding older events.
+   *
+   * @remarks
+   * Instead of removing each event from the queue as it is consumed, we only move the head of the queue (which is more efficient).
+   * Occasionally the queue will be "trimmed" by removing all processed events from the array.
+   * This value determines how often that happens.
+   *
+   * Decrease if you experience memory leaks.
+   *
+   * @default 100
+   */
+  maxQueueSize?: number;
+}
+
 /**
  * Create an async iterable of events from an EventTarget.
  *
@@ -28,7 +44,7 @@ function onImpl<
 >(
   target: TTarget,
   type: TEventType,
-  opts?: AddEventListenerOptions,
+  opts?: EventIteratorOptions,
 ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 
 /**
@@ -52,13 +68,13 @@ function onImpl<
 function onImpl<TEvent extends Event>(
   target: EventTargetLike,
   type: string,
-  opts?: AddEventListenerOptions,
+  opts?: EventIteratorOptions,
 ): AsyncIterableIterator<TEvent>;
 
 function onImpl(
   target: EventTargetLike,
   type: string,
-  { signal, ...opts }: AddEventListenerOptions = {},
+  { signal, maxQueueSize = 100, ...opts }: EventIteratorOptions = {},
 ): AsyncIterableIterator<Event> {
   const eventQueue: Array<Event> = [];
   let queueHead = 0;
@@ -122,7 +138,7 @@ function onImpl(
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const event = eventQueue[queueHead++]!;
 
-        if (queueHead > 100) {
+        if (queueHead > maxQueueSize) {
           eventQueue.splice(0, queueHead);
           queueHead = 0;
         }
@@ -159,7 +175,7 @@ function onImpl(
  */
 export type OnEvent = <TEvent extends Event>(
   target: EventTargetLike,
-  opts?: AddEventListenerOptions,
+  opts?: EventIteratorOptions,
 ) => AsyncIterableIterator<TEvent>;
 
 export interface OnKnownEvent<TEventType extends string> extends OnEvent {
@@ -181,7 +197,7 @@ export interface OnKnownEvent<TEventType extends string> extends OnEvent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   <TTarget extends EventTargetLike & InferrableTarget<TEventType, any>>(
     target: TTarget,
-    opts?: AddEventListenerOptions,
+    opts?: EventIteratorOptions,
   ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 }
 
