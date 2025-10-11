@@ -6,7 +6,9 @@ import type {
   Compute,
 } from "./types";
 
-interface EventIteratorOptions extends AddEventListenerOptions {
+export type { EventTargetLike, EventForType, EventTypes, InferrableTarget };
+
+export interface EventIteratorOptions extends AddEventListenerOptions {
   /**
    * How many events to queue before discarding older events.
    *
