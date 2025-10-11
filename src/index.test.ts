@@ -33,7 +33,7 @@ describe("on", () => {
     const ac = new AbortController();
 
     const listenPromise = Array.fromAsync(
-      take(on.click(document, { signal: ac.signal }), 3),
+      on.click(document, { signal: ac.signal }),
     );
 
     await clickThrice();
