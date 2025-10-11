@@ -78,9 +78,16 @@ function onImpl(
     queueHead = eventQueue.length = 0;
   }
 
-  signal?.addEventListener("abort", () => {
-    done(signal.reason);
-  });
+  signal?.addEventListener(
+    "abort",
+    () => {
+      done(signal.reason);
+    },
+    {
+      once: true,
+      signal: returnAc.signal,
+    },
+  );
 
   if (signal?.aborted) {
     done(signal.reason);
