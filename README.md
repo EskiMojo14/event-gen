@@ -26,6 +26,10 @@ for await (const event of on.click(document, {
 }
 ```
 
+## Polyfills
+
+This package uses [`AbortSignal.any`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/any_static) and [`Promise.withResolvers`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/withResolvers). If you're in an environment without these, you'll need a polyfill.
+
 ## Type inference
 
 The event type is inferred from the target's `on${TEventType}` property (e.g. `onclick`).
