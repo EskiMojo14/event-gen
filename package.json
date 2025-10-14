@@ -1,7 +1,7 @@
 {
   "name": "event-gen",
   "version": "1.0.0",
-  "description": "",
+  "description": "Create an async iterable of events from an EventTarget",
   "scripts": {
     "prepare": "husky",
     "prebuild": "pnpm run type",
@@ -15,9 +15,15 @@
     "type": "tsc",
     "prepack": "pnpm run publint"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "event",
+    "listener",
+    "async",
+    "iterable"
+  ],
+  "author": "EskiMojo14",
   "license": "ISC",
+  "repository": "github:EskiMojo14/event-gen",
   "packageManager": "pnpm@10.12.4",
   "type": "module",
   "main": "./dist/index.cjs",
