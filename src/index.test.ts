@@ -20,7 +20,7 @@ async function clickThrice() {
 describe("on", () => {
   it("creates an iterable of events", async () => {
     // could be Array.fromAsync(on.click(document).take(3)) one day
-    // or with observables, document.on("click").take(3).toArray()
+    // or with observables, document.when("click").take(3).toArray()
     const listenPromise = Array.fromAsync(take(on.click(document), 3));
 
     await clickThrice();
