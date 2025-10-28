@@ -1,5 +1,5 @@
-import { page } from "vitest/browser";
 import { describe, expect, it, test } from "vitest";
+import { page } from "vitest/browser";
 import { on } from ".";
 
 async function* take<T>(iter: AsyncIterable<T>, count: number) {
