@@ -46,6 +46,11 @@ describe("on", () => {
     expect(on.then).toBeUndefined();
     await expect(Promise.resolve(on)).resolves.toBe(on);
   });
+  it("forwards symbol and built in props", () => {
+    expect(on).toHaveProperty("call", expect.any(Function));
+    // @ts-expect-error
+    expect(on[Symbol.asyncIterator]).toBeUndefined();
+  });
   describe("it exposes the abort reason", () => {
     test("when already aborted", async () => {
       const iter = on.click(document, { signal: AbortSignal.abort("Oops!") });
