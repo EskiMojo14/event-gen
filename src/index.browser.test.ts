@@ -1,5 +1,5 @@
-import { describe, expect, it, test } from "vitest";
-import { page } from "vitest/browser";
+import { describe, expect, it, test } from "vite-plus/test";
+import { page } from "vite-plus/test/browser";
 import { on } from ".";
 
 async function* take<T>(iter: AsyncIterable<T>, count: number) {
@@ -32,9 +32,7 @@ describe("on", () => {
   it("can be aborted", async () => {
     const ac = new AbortController();
 
-    const listenPromise = Array.fromAsync(
-      on.click(document, { signal: ac.signal }),
-    );
+    const listenPromise = Array.fromAsync(on.click(document, { signal: ac.signal }));
 
     await clickThrice();
 
@@ -60,7 +58,6 @@ describe("on", () => {
       await body.click();
       await expect(firstClickPromise).resolves.toEqual({
         done: false,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         value: expect.any(PointerEvent),
       });
 

@@ -1,10 +1,4 @@
-import type {
-  EventTargetLike,
-  EventForType,
-  EventTypes,
-  InferrableTarget,
-  Compute,
-} from "./types";
+import type { EventTargetLike, EventForType, EventTypes, InferrableTarget, Compute } from "./types";
 
 export type { EventTargetLike, EventForType, EventTypes, InferrableTarget };
 
@@ -40,10 +34,7 @@ export interface EventIteratorOptions extends AddEventListenerOptions {
  *
  * @returns Async iterable of events
  */
-function onImpl<
-  TTarget extends EventTargetLike,
-  TEventType extends EventTypes<TTarget>,
->(
+function onImpl<TTarget extends EventTargetLike, TEventType extends EventTypes<TTarget>>(
   target: TTarget,
   type: TEventType,
   opts?: EventIteratorOptions,
@@ -122,9 +113,7 @@ function onImpl(
       },
       {
         ...opts,
-        signal: signal
-          ? AbortSignal.any([returnAc.signal, signal])
-          : returnAc.signal,
+        signal: signal ? AbortSignal.any([returnAc.signal, signal]) : returnAc.signal,
       },
     );
   }
@@ -137,7 +126,6 @@ function onImpl(
       if (isAborted) return Promise.resolve({ done: true, value: abortReason });
 
       if (queueHead < eventQueue.length) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const event = eventQueue[queueHead++]!;
 
         if (queueHead > maxQueueSize) {
@@ -196,15 +184,13 @@ export interface OnKnownEvent<TEventType extends string> extends OnEvent {
    *
    * @returns Async iterable of events
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   <TTarget extends EventTargetLike & InferrableTarget<TEventType, any>>(
     target: TTarget,
     opts?: EventIteratorOptions,
   ): AsyncIterableIterator<EventForType<TTarget, TEventType>>;
 }
 
-export interface KnownEvents
-  extends Record<keyof WindowEventMap | keyof DocumentEventMap, true> {}
+export interface KnownEvents extends Record<keyof WindowEventMap | keyof DocumentEventMap, true> {}
 
 type EventMethods = Compute<
   Record<string, OnEvent> & {
@@ -215,11 +201,9 @@ const methodCache = new Map<string, OnEvent>();
 export const on = new Proxy(onImpl as typeof onImpl & EventMethods, {
   get: (target, prop) => {
     if (typeof prop !== "string" || Reflect.has(target, prop)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return Reflect.get(target, prop);
     }
-    if (!methodCache.has(prop))
-      methodCache.set(prop, (target, opts) => onImpl(target, prop, opts));
+    if (!methodCache.has(prop)) methodCache.set(prop, (target, opts) => onImpl(target, prop, opts));
     return methodCache.get(prop);
   },
 });

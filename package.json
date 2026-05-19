@@ -2,29 +2,18 @@
   "name": "event-gen",
   "version": "1.0.0",
   "description": "Create an async iterable of events from an EventTarget",
-  "scripts": {
-    "prepare": "husky",
-    "prebuild": "pnpm run type",
-    "build": "tsdown",
-    "test": "vitest",
-    "lint": "eslint",
-    "format": "prettier",
-    "pre-commit": "lint-staged",
-    "attw": "attw",
-    "publint": "publint",
-    "type": "tsc",
-    "prepack": "pnpm run publint"
-  },
   "keywords": [
-    "event",
-    "listener",
     "async",
-    "iterable"
+    "event",
+    "iterable",
+    "listener"
   ],
-  "author": "EskiMojo14",
   "license": "ISC",
+  "author": "EskiMojo14",
   "repository": "github:EskiMojo14/event-gen",
-  "packageManager": "pnpm@10.12.4",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -36,44 +25,27 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
-  "prettier": {},
-  "lint-staged": {
-    "*.{ts,md}": "prettier --write"
-  },
-  "tsdown": {
-    "entry": [
-      "src/index.ts"
-    ],
-    "sourcemap": true,
-    "format": [
-      "esm",
-      "cjs"
-    ],
-    "dts": true
+  "scripts": {
+    "prepare": "vp config",
+    "prebuild": "pnpm run type",
+    "build": "vp pack",
+    "test": "vp test",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "pre-commit": "vp staged",
+    "attw": "attw",
+    "publint": "publint",
+    "type": "tsc",
+    "prepack": "pnpm run publint"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
-    "@eslint/js": "^9.37.0",
     "@types/node": "^24.7.0",
-    "@typescript-eslint/parser": "^8.45.0",
-    "@vitest/browser-playwright": "^4",
-    "eslint": "^9.37.0",
-    "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-import-x": "^4.16.1",
-    "eslint-plugin-vitest": "^0.5.4",
-    "globals": "^16.4.0",
-    "husky": "^9.1.7",
-    "jiti": "^2.6.1",
-    "lint-staged": "^16.2.3",
     "playwright": "^1.56.0",
-    "prettier": "^3.6.2",
     "publint": "^0.3.14",
-    "tsdown": "^0.15.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.45.0",
-    "vitest": "^4"
-  }
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
+  },
+  "packageManager": "pnpm@10.12.4"
 }
