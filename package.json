@@ -16,12 +16,12 @@
   ],
   "type": "module",
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     }
   },
@@ -31,15 +31,15 @@
     "pre-commit": "vp staged",
     "attw": "attw",
     "publint": "publint",
-    "type": "tsc",
+    "type": "tsgo",
     "prepack": "pnpm run publint"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@types/node": "^24.7.0",
+    "@typescript/native-preview": "7.0.0-dev.20260518.1",
     "playwright": "^1.56.0",
     "publint": "^0.3.14",
-    "typescript": "^5.9.3",
     "vite-plus": "catalog:",
     "vitest": "catalog:"
   },
