@@ -42,6 +42,10 @@ describe("on", () => {
 
     await expect(listenPromise).resolves.toHaveLength(3);
   });
+  it("can't be thenable", async () => {
+    expect(on.then).toBeUndefined();
+    await expect(Promise.resolve(on)).resolves.toBe(on);
+  });
   describe("it exposes the abort reason", () => {
     test("when already aborted", async () => {
       const iter = on.click(document, { signal: AbortSignal.abort("Oops!") });

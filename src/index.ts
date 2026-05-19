@@ -195,11 +195,14 @@ export interface KnownEvents extends Record<keyof WindowEventMap | keyof Documen
 type EventMethods = Compute<
   Record<string, OnEvent> & {
     [K in keyof KnownEvents]: OnKnownEvent<K>;
+  } & {
+    then?: never; // avoid being thenable
   }
 >;
 const methodCache = new Map<string, OnEvent>();
 export const on = new Proxy(onImpl as typeof onImpl & EventMethods, {
   get: (target, prop) => {
+    if (prop === "then") return undefined; // avoid accidentally being thenable
     if (typeof prop !== "string" || Reflect.has(target, prop)) {
       return Reflect.get(target, prop);
     }
