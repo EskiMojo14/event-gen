@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { describe, it, expectTypeOf } from "vitest";
+import { describe, it, expectTypeOf } from "vite-plus/test";
 import type { OnEvent, OnKnownEvent } from ".";
 import { on } from ".";
 
@@ -15,26 +14,16 @@ class CustomTarget extends EventTarget {
 
 describe("on", () => {
   it("infers the event type", () => {
-    expectTypeOf(on(document, "click")).toEqualTypeOf<
-      AsyncIterableIterator<PointerEvent>
-    >();
-    expectTypeOf(on.click(document)).toEqualTypeOf<
-      AsyncIterableIterator<PointerEvent>
-    >();
+    expectTypeOf(on(document, "click")).toEqualTypeOf<AsyncIterableIterator<PointerEvent>>();
+    expectTypeOf(on.click(document)).toEqualTypeOf<AsyncIterableIterator<PointerEvent>>();
     expectTypeOf(on(new CustomTarget(), "known")).toEqualTypeOf<
       AsyncIterableIterator<CustomEvent>
     >();
-    expectTypeOf(on.known(new CustomTarget())).toEqualTypeOf<
-      AsyncIterableIterator<CustomEvent>
-    >();
+    expectTypeOf(on.known(new CustomTarget())).toEqualTypeOf<AsyncIterableIterator<CustomEvent>>();
   });
   it("defaults to Event if the event type cannot be inferred", () => {
-    expectTypeOf(on(document, "unknown")).toEqualTypeOf<
-      AsyncIterableIterator<Event>
-    >();
-    expectTypeOf(on.unknown!(new EventTarget())).toEqualTypeOf<
-      AsyncIterableIterator<Event>
-    >();
+    expectTypeOf(on(document, "unknown")).toEqualTypeOf<AsyncIterableIterator<Event>>();
+    expectTypeOf(on.unknown!(new EventTarget())).toEqualTypeOf<AsyncIterableIterator<Event>>();
   });
   it("allows asserting the event type", () => {
     expectTypeOf(on<PointerEvent>(document, "unknown")).toEqualTypeOf<
