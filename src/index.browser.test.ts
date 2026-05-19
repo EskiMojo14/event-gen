@@ -90,5 +90,29 @@ describe("on", () => {
         "The `maxQueueSize` option is deprecated and will be removed in a future version. Please use `trimQueueAfter` instead.",
       );
     });
+
+    it("queues unconsumed click events and yields them later", async () => {
+      const iter = on.click(document);
+
+      await clickThrice();
+
+      await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
+      await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
+      await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
+
+      await iter.return?.();
+    });
+
+    it("does not drop unconsumed click events when trimQueueAfter is small", async () => {
+      const iter = on.click(document, { trimQueueAfter: 1 });
+
+      await clickThrice();
+
+      await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
+      await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
+      await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
+
+      await iter.return?.();
+    });
   });
 });
