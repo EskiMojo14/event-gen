@@ -36,10 +36,11 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
-    "@types/node": "^24.7.0",
+    "@types/node": "^24.12.4",
     "@typescript/native-preview": "7.0.0-dev.20260518.1",
-    "playwright": "^1.56.0",
-    "publint": "^0.3.14",
+    "playwright": "^1.60.0",
+    "publint": "^0.3.21",
+    "typescript": "^6.0.3",
     "vite-plus": "catalog:",
     "vitest": "catalog:"
   },
