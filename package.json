@@ -8,7 +8,7 @@
     "iterable",
     "listener"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "author": "EskiMojo14",
   "repository": "github:EskiMojo14/event-gen",
   "files": [
