@@ -4,14 +4,30 @@ export type { EventTargetLike, EventForType, EventTypes, InferrableTarget };
 
 export interface EventIteratorOptions extends AddEventListenerOptions {
   /**
-   * How many events to queue before discarding older events.
+   * How many events to queue before trimming processed events.
    *
    * @remarks
    * Instead of removing each event from the queue as it is consumed, we only move the head of the queue (which is more efficient).
    * Occasionally the queue will be "trimmed" by removing all processed events from the array.
    * This value determines how often that happens.
    *
-   * Decrease if you experience memory leaks.
+   * Note: This does not limit the number of unconsumed events in the queue.
+   *
+   * @default 100
+   */
+  trimQueueAfter?: number;
+
+  /**
+   * How many events to queue before trimming processed events.
+   *
+   * @remarks
+   * Instead of removing each event from the queue as it is consumed, we only move the head of the queue (which is more efficient).
+   * Occasionally the queue will be "trimmed" by removing all processed events from the array.
+   * This value determines how often that happens.
+   *
+   * Note: This does not limit the number of unconsumed events in the queue.
+   *
+   * @deprecated Use `trimQueueAfter` instead.
    *
    * @default 100
    */
@@ -67,8 +83,18 @@ function onImpl<TEvent extends Event>(
 function onImpl(
   target: EventTargetLike,
   type: string,
-  { signal, maxQueueSize = 100, ...opts }: EventIteratorOptions = {},
+  {
+    signal,
+    maxQueueSize,
+    trimQueueAfter = maxQueueSize ?? 100,
+    ...opts
+  }: EventIteratorOptions = {},
 ): AsyncIterableIterator<Event> {
+  if (maxQueueSize !== undefined) {
+    console.warn(
+      "The `maxQueueSize` option is deprecated and will be removed in a future version. Please use `trimQueueAfter` instead.",
+    );
+  }
   const eventQueue: Array<Event> = [];
   let queueHead = 0;
   let current: PromiseWithResolvers<IteratorResult<Event>> | undefined;
@@ -128,7 +154,7 @@ function onImpl(
       if (queueHead < eventQueue.length) {
         const event = eventQueue[queueHead++]!;
 
-        if (queueHead > maxQueueSize) {
+        if (queueHead > trimQueueAfter) {
           eventQueue.splice(0, queueHead);
           queueHead = 0;
         }

@@ -1,4 +1,4 @@
-import { describe, expect, it, test } from "vite-plus/test";
+import { describe, expect, it, test, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
 import { on } from ".";
 
@@ -71,6 +71,19 @@ describe("on", () => {
         done: true,
         value: "Oops!",
       });
+    });
+  });
+  describe("custom options", () => {
+    it("warns when deprecated options are used", async () => {
+      using consoleWarnSpy = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => {}) as unknown as Disposable;
+
+      on.click(document, { maxQueueSize: 42, signal: AbortSignal.abort() });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "The `maxQueueSize` option is deprecated and will be removed in a future version. Please use `trimQueueAfter` instead.",
+      );
     });
   });
 });
