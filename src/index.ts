@@ -2,37 +2,49 @@ import type { EventTargetLike, EventForType, EventTypes, InferrableTarget, Compu
 
 export type { EventTargetLike, EventForType, EventTypes, InferrableTarget };
 
-export interface EventIteratorOptions extends AddEventListenerOptions {
+export type BufferOverflowBehavior = "drop-oldest" | "drop-newest" | "error";
+
+interface EventBufferOptions {
   /**
-   * How many events to queue before trimming processed events.
+   * How many events to queue before trimming consumed events.
    *
    * @remarks
    * Instead of removing each event from the queue as it is consumed, we only move the head of the queue (which is more efficient).
-   * Occasionally the queue will be "trimmed" by removing all processed events from the array.
+   * Occasionally the queue will be "trimmed" by removing all consumed events from the array.
    * This value determines how often that happens.
    *
    * Note: This does not limit the number of unconsumed events in the queue.
    *
    * @default 100
    */
-  trimQueueAfter?: number;
+  trimBufferAfter?: number;
 
   /**
-   * How many events to queue before trimming processed events.
+   * Maximum number of unconsumed events to keep buffered.
    *
    * @remarks
-   * Instead of removing each event from the queue as it is consumed, we only move the head of the queue (which is more efficient).
-   * Occasionally the queue will be "trimmed" by removing all processed events from the array.
-   * This value determines how often that happens.
+   * When the limit is reached, the next incoming event is handled according to `overflow`.
    *
-   * Note: This does not limit the number of unconsumed events in the queue.
-   *
-   * @deprecated Use `trimQueueAfter` instead.
-   *
-   * @default 100
+   * @default undefined
    */
+  maxUnconsumedEvents?: number;
+
+  /**
+   * Behavior when `maxUnconsumedEvents` is reached.
+   *
+   * - `drop-oldest`: discard the oldest buffered event and enqueue the new event
+   * - `drop-newest`: discard the newly received event
+   * - `error`: stop iteration and reject subsequent `next()` calls
+   *
+   * @default "drop-oldest"
+   */
+  onOverflow?: BufferOverflowBehavior;
+
+  /** @deprecated Use `trimBufferAfter` instead. */
   maxQueueSize?: number;
 }
+
+export interface EventIteratorOptions extends AddEventListenerOptions, EventBufferOptions {}
 
 /**
  * Create an async iterable of events from an EventTarget.
@@ -86,31 +98,58 @@ function onImpl(
   {
     signal,
     maxQueueSize,
-    trimQueueAfter = maxQueueSize ?? 100,
+    trimBufferAfter = maxQueueSize ?? 100,
+    maxUnconsumedEvents: maxBufferedEvents,
+    onOverflow = "drop-oldest",
     ...opts
   }: EventIteratorOptions = {},
 ): AsyncIterableIterator<Event> {
   if (maxQueueSize !== undefined) {
     console.warn(
-      "The `maxQueueSize` option is deprecated and will be removed in a future version. Please use `trimQueueAfter` instead.",
+      "The `maxQueueSize` option is deprecated and will be removed in a future version. Please use `trimBufferAfter` instead.",
     );
   }
-  const eventQueue: Array<Event> = [];
-  let queueHead = 0;
-  let current: PromiseWithResolvers<IteratorResult<Event>> | undefined;
-  let isAborted = false;
-  let abortReason: unknown;
+  const bufferedEvents: Array<Event> = [];
+  let bufferHead = 0;
+  let waiting: PromiseWithResolvers<IteratorResult<Event>> | undefined;
+  let completion: "done" | "error" | undefined;
+  let completionReason: unknown;
 
-  const returnAc = new AbortController();
+  if (
+    maxBufferedEvents !== undefined &&
+    (!Number.isInteger(maxBufferedEvents) || maxBufferedEvents < 0)
+  ) {
+    throw new RangeError("The `maxBufferedEvents` option must be a positive integer.");
+  }
+
+  if (!Number.isInteger(trimBufferAfter) || trimBufferAfter < 0) {
+    throw new RangeError("The `trimBufferAfter` option must be a positive integer.");
+  }
+
+  const completionAc = new AbortController();
 
   function done(reason?: unknown) {
-    isAborted = true;
-    abortReason = reason;
+    if (!completion) {
+      completion = "done";
+      completionReason = reason;
+    }
 
-    current?.resolve({ done: true, value: reason });
-    current = undefined;
+    waiting?.resolve({ done: true, value: completionReason });
+    waiting = undefined;
 
-    queueHead = eventQueue.length = 0;
+    bufferHead = bufferedEvents.length = 0;
+  }
+
+  function fail(reason: unknown) {
+    if (!completion) {
+      completion = "error";
+      completionReason = reason;
+    }
+
+    waiting?.reject(reason);
+    waiting = undefined;
+
+    bufferHead = bufferedEvents.length = 0;
   }
 
   signal?.addEventListener(
@@ -120,7 +159,7 @@ function onImpl(
     },
     {
       once: true,
-      signal: returnAc.signal,
+      signal: completionAc.signal,
     },
   );
 
@@ -130,16 +169,39 @@ function onImpl(
     target.addEventListener(
       type,
       (value) => {
-        if (current) {
-          current.resolve({ done: false, value });
-          current = undefined;
+        if (waiting) {
+          waiting.resolve({ done: false, value });
+          waiting = undefined;
         } else {
-          eventQueue.push(value);
+          const bufferedCount = bufferedEvents.length - bufferHead;
+
+          if (maxBufferedEvents !== undefined && bufferedCount >= maxBufferedEvents) {
+            if (onOverflow === "drop-newest") {
+              return;
+            }
+
+            if (onOverflow === "error") {
+              const reason = new Error(
+                `Buffered event limit exceeded for \`${type}\` (maxBufferedEvents=${maxBufferedEvents}).`,
+              );
+              fail(reason);
+              completionAc.abort(reason);
+              return;
+            }
+
+            if (maxBufferedEvents > 0) {
+              bufferHead++;
+            } else {
+              return;
+            }
+          }
+
+          bufferedEvents.push(value);
         }
       },
       {
         ...opts,
-        signal: signal ? AbortSignal.any([returnAc.signal, signal]) : returnAc.signal,
+        signal: signal ? AbortSignal.any([completionAc.signal, signal]) : completionAc.signal,
       },
     );
   }
@@ -149,23 +211,24 @@ function onImpl(
       return this;
     },
     next() {
-      if (isAborted) return Promise.resolve({ done: true, value: abortReason });
+      if (completion === "error") return Promise.reject(completionReason);
+      if (completion === "done") return Promise.resolve({ done: true, value: completionReason });
 
-      if (queueHead < eventQueue.length) {
-        const event = eventQueue[queueHead++]!;
+      if (bufferHead < bufferedEvents.length) {
+        const event = bufferedEvents[bufferHead++]!;
 
-        if (queueHead > trimQueueAfter) {
-          eventQueue.splice(0, queueHead);
-          queueHead = 0;
+        if (bufferHead > trimBufferAfter) {
+          bufferedEvents.splice(0, bufferHead);
+          bufferHead = 0;
         }
 
         return Promise.resolve({ done: false, value: event });
       }
 
-      return (current ??= Promise.withResolvers()).promise;
+      return (waiting ??= Promise.withResolvers()).promise;
     },
     return(reason?: unknown) {
-      returnAc.abort();
+      completionAc.abort();
       done(reason);
       return Promise.resolve({ done: true, value: reason });
     },

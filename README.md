@@ -26,6 +26,31 @@ for await (const event of on.click(document, {
 }
 ```
 
+Events that are emitted faster than they are consumed will be buffered up to the `maxUnconsumedEvents` limit (if one is set). When the buffer is full, the behavior is determined by the `onOverflow` option.
+
+```ts
+for await (const event of on.click(document, {
+  maxUnconsumedEvents: 100, // no limit by default
+  onOverflow: "drop-oldest", // "drop-oldest", "drop-newest", or "error" - "drop-oldest" by default
+})) {
+  // do something long with the click event
+}
+```
+
+**Note that a `maxUnconsumedEvents` of `0` with an `onOverflow` of `"error"` will cause the iterator to error on the first event if it's not consumed immediately.**
+
+For performance, consumed events are not removed immediately from the buffer, but instead the buffer is trimmed after a certain number of events (determined by `trimBufferAfter`, default `100`) have been consumed. This means that the real amount of events stored in the buffer may be up to `trimBufferAfter + maxUnconsumedEvents`.
+
+```ts
+// up to 150 events may remain in memory with these settings
+for await (const event of on.click(document, {
+  maxUnconsumedEvents: 100,
+  trimBufferAfter: 50, // trim the buffer after every 50 consumed events
+})) {
+  // do something long with the click event
+}
+```
+
 ## Polyfills
 
 This package uses [`AbortSignal.any`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/any_static) and [`Promise.withResolvers`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/withResolvers). If you're in an environment without these, you'll need a polyfill.

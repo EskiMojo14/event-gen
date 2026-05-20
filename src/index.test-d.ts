@@ -37,4 +37,9 @@ describe("on", () => {
     expectTypeOf(on.unknown).toEqualTypeOf<OnEvent | undefined>();
     expectTypeOf(on.known).toEqualTypeOf<OnKnownEvent<"known">>();
   });
+  it("supports buffering options", () => {
+    expectTypeOf(
+      on.click(document, { maxUnconsumedEvents: 10, onOverflow: "drop-newest" }),
+    ).toEqualTypeOf<AsyncIterableIterator<PointerEvent>>();
+  });
 });

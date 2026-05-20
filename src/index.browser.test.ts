@@ -79,6 +79,12 @@ describe("on", () => {
     });
   });
   describe("custom options", () => {
+    it("throws when invalid options are passed", () => {
+      // @ts-expect-error
+      expect(() => on.click(document, { maxUnconsumedEvents: "cheese" })).toThrow(RangeError);
+      // @ts-expect-error
+      expect(() => on.click(document, { trimBufferAfter: "cheese" })).toThrow(RangeError);
+    });
     it("warns when deprecated options are used", async () => {
       using consoleWarnSpy = vi
         .spyOn(console, "warn")
@@ -86,8 +92,8 @@ describe("on", () => {
 
       on.click(document, { maxQueueSize: 42, signal: AbortSignal.abort() });
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "The `maxQueueSize` option is deprecated and will be removed in a future version. Please use `trimQueueAfter` instead.",
+      expect(consoleWarnSpy).toHaveBeenCalledExactlyOnceWith(
+        "The `maxQueueSize` option is deprecated and will be removed in a future version. Please use `trimBufferAfter` instead.",
       );
     });
 
@@ -103,14 +109,107 @@ describe("on", () => {
       await iter.return?.();
     });
 
-    it("does not drop unconsumed click events when trimQueueAfter is small", async () => {
-      const iter = on.click(document, { trimQueueAfter: 1 });
+    it("does not drop unconsumed click events when trimBufferAfter is small", async () => {
+      const iter = on.click(document, { trimBufferAfter: 1 });
 
       await clickThrice();
 
       await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
       await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
       await expect(iter.next()).resolves.toEqual({ done: false, value: expect.any(PointerEvent) });
+
+      await iter.return?.();
+    });
+
+    it("drops oldest buffered events when overflow is drop-oldest", async () => {
+      const target = new EventTarget();
+      const iter = on<CustomEvent<number>>(target, "tick", {
+        maxUnconsumedEvents: 2,
+        onOverflow: "drop-oldest",
+      });
+
+      target.dispatchEvent(new CustomEvent("tick", { detail: 1 }));
+      target.dispatchEvent(new CustomEvent("tick", { detail: 2 }));
+      target.dispatchEvent(new CustomEvent("tick", { detail: 3 }));
+
+      await expect(iter.next()).resolves.toEqual({
+        done: false,
+        value: expect.objectContaining({ detail: 2 }),
+      });
+      await expect(iter.next()).resolves.toEqual({
+        done: false,
+        value: expect.objectContaining({ detail: 3 }),
+      });
+
+      await iter.return?.();
+    });
+
+    it("allows maxUnconsumedEvents: 0", async () => {
+      const target = new EventTarget();
+      const iter = on<CustomEvent<number>>(target, "tick", {
+        maxUnconsumedEvents: 0,
+        onOverflow: "drop-oldest",
+      });
+
+      const next1 = iter.next();
+
+      target.dispatchEvent(new CustomEvent("tick", { detail: 1 }));
+
+      // thrown away, nobody was waiting for it
+      target.dispatchEvent(new CustomEvent("tick", { detail: 2 }));
+
+      await expect(next1).resolves.toEqual({
+        done: false,
+        value: expect.objectContaining({ detail: 1 }),
+      });
+
+      const next2 = iter.next();
+
+      target.dispatchEvent(new CustomEvent("tick", { detail: 3 }));
+
+      await expect(next2).resolves.toEqual({
+        done: false,
+        value: expect.objectContaining({ detail: 3 }),
+      });
+
+      await iter.return?.();
+    });
+
+    it("drops newest events when overflow is drop-newest", async () => {
+      const target = new EventTarget();
+      const iter = on<CustomEvent<number>>(target, "tick", {
+        maxUnconsumedEvents: 2,
+        onOverflow: "drop-newest",
+      });
+
+      target.dispatchEvent(new CustomEvent("tick", { detail: 1 }));
+      target.dispatchEvent(new CustomEvent("tick", { detail: 2 }));
+      target.dispatchEvent(new CustomEvent("tick", { detail: 3 }));
+
+      await expect(iter.next()).resolves.toEqual({
+        done: false,
+        value: expect.objectContaining({ detail: 1 }),
+      });
+      await expect(iter.next()).resolves.toEqual({
+        done: false,
+        value: expect.objectContaining({ detail: 2 }),
+      });
+
+      await iter.return?.();
+    });
+
+    it("rejects next calls when overflow is error", async () => {
+      const target = new EventTarget();
+      const iter = on<CustomEvent<number>>(target, "tick", {
+        maxUnconsumedEvents: 2,
+        onOverflow: "error",
+      });
+
+      target.dispatchEvent(new CustomEvent("tick", { detail: 1 }));
+      target.dispatchEvent(new CustomEvent("tick", { detail: 2 }));
+      target.dispatchEvent(new CustomEvent("tick", { detail: 3 }));
+
+      await expect(iter.next()).rejects.toThrow("Buffered event limit exceeded");
 
       await iter.return?.();
     });
