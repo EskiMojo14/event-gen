@@ -32,13 +32,15 @@
     "attw": "attw",
     "publint": "publint",
     "type": "tsgo",
-    "prepack": "pnpm run publint"
+    "prepack": "pnpm run publint",
+    "knip": "knip"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@types/node": "^24.12.4",
     "@typescript/native-preview": "7.0.0-dev.20260518.1",
     "@vitest/coverage-v8": "^4.1.6",
+    "knip": "^6.14.1",
     "playwright": "^1.60.0",
     "publint": "^0.3.21",
     "typescript": "^6.0.3",
