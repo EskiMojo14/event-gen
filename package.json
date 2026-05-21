@@ -40,9 +40,9 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@size-limit/preset-small-lib": "^12.1.0",
-    "@types/node": "^24.12.4",
-    "@typescript/native-preview": "7.0.0-dev.20260518.1",
-    "@vitest/coverage-v8": "^4.1.6",
+    "@types/node": "^25.9.1",
+    "@typescript/native-preview": "7.0.0-dev.20260519.1",
+    "@vitest/coverage-v8": "^4.1.7",
     "jiti": "^2.7.0",
     "knip": "^6.14.1",
     "playwright": "^1.60.0",
