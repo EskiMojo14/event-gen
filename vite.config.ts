@@ -3,6 +3,7 @@ import { playwright } from "vite-plus/test/browser-playwright";
 
 export default defineConfig({
   pack: {
+    deps: { resolveDepSubpath: true },
     entry: ["src/index.ts"],
     sourcemap: true,
     format: ["esm", "cjs"],
